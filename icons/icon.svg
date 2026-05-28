@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#000"/>
+  <rect x="64" y="64" width="384" height="120" rx="16" fill="#1c1c1c"/>
+  <text x="424" y="160" font-family="Helvetica, Arial, sans-serif" font-size="80" font-weight="200" fill="#fff" text-anchor="end">0</text>
+  <g>
+    <circle cx="128" cy="240" r="44" fill="#333"/>
+    <circle cx="224" cy="240" r="44" fill="#333"/>
+    <circle cx="320" cy="240" r="44" fill="#333"/>
+    <circle cx="416" cy="240" r="44" fill="#ff9500"/>
+    <circle cx="128" cy="336" r="44" fill="#333"/>
+    <circle cx="224" cy="336" r="44" fill="#333"/>
+    <circle cx="320" cy="336" r="44" fill="#333"/>
+    <circle cx="416" cy="336" r="44" fill="#ff9500"/>
+    <circle cx="128" cy="432" r="44" fill="#333"/>
+    <circle cx="224" cy="432" r="44" fill="#333"/>
+    <circle cx="320" cy="432" r="44" fill="#333"/>
+    <circle cx="416" cy="432" r="44" fill="#ff9500"/>
+    <text x="128" y="252" font-family="Helvetica, Arial, sans-serif" font-size="42" fill="#fff" text-anchor="middle">7</text>
+    <text x="224" y="252" font-family="Helvetica, Arial, sans-serif" font-size="42" fill="#fff" text-anchor="middle">8</text>
+    <text x="320" y="252" font-family="Helvetica, Arial, sans-serif" font-size="42" fill="#fff" text-anchor="middle">9</text>
+    <text x="416" y="254" font-family="Helvetica, Arial, sans-serif" font-size="48" fill="#fff" text-anchor="middle">×</text>
+    <text x="128" y="348" font-family="Helvetica, Arial, sans-serif" font-size="42" fill="#fff" text-anchor="middle">4</text>
+    <text x="224" y="348" font-family="Helvetica, Arial, sans-serif" font-size="42" fill="#fff" text-anchor="middle">5</text>
+    <text x="320" y="348" font-family="Helvetica, Arial, sans-serif" font-size="42" fill="#fff" text-anchor="middle">6</text>
+    <text x="416" y="350" font-family="Helvetica, Arial, sans-serif" font-size="48" fill="#fff" text-anchor="middle">−</text>
+    <text x="128" y="444" font-family="Helvetica, Arial, sans-serif" font-size="42" fill="#fff" text-anchor="middle">1</text>
+    <text x="224" y="444" font-family="Helvetica, Arial, sans-serif" font-size="42" fill="#fff" text-anchor="middle">2</text>
+    <text x="320" y="444" font-family="Helvetica, Arial, sans-serif" font-size="42" fill="#fff" text-anchor="middle">3</text>
+    <text x="416" y="448" font-family="Helvetica, Arial, sans-serif" font-size="48" fill="#fff" text-anchor="middle">+</text>
+  </g>
+</svg>
