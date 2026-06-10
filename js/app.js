@@ -252,9 +252,9 @@
       if (pushWanted && !pushWas) {
         const ok = await enablePush();
         if (!ok) {
+          // enablePush ya mostró el motivo exacto cuando corresponde
           settings.push = false;
           saveSettings(settings);
-          alert('No se pudieron activar los avisos. Revisá que el navegador tenga permiso de notificaciones para esta app.');
         }
       } else if (!pushWanted && pushWas) {
         await disablePush();
@@ -362,7 +362,19 @@
     pushPrompting = true; // el diálogo de permiso quita el foco: no activar el escudo
     try {
       const perm = await Notification.requestPermission();
-      if (perm !== 'granted') return false;
+      if (perm !== 'granted') {
+        if (Notification.permission === 'denied') {
+          alert('Las notificaciones están BLOQUEADAS para esta app.\n\n' +
+            'Si la usás desde Chrome:\n' +
+            '1. Tocá el candado 🔒 al lado de la dirección\n' +
+            '2. Permisos → Notificaciones → Permitir\n\n' +
+            'Si está instalada en la pantalla de inicio:\n' +
+            '1. Ajustes de Android → Aplicaciones\n' +
+            '2. Buscá "Calculadora" → Notificaciones → Permitir\n\n' +
+            'Después volvé acá y activá el aviso de nuevo.');
+        }
+        return false;
+      }
       const { reg } = await getSub();
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
