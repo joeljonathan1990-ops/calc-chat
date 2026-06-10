@@ -248,18 +248,17 @@
     $attachMenu.classList.toggle('hidden');
   });
 
-  document.getElementById('attach-camera').addEventListener('click', () => {
+  // Al abrir cámara/galería/archivos la app pasa a segundo plano por un
+  // selector del sistema: avisar para que el escudo de privacidad no bloquee.
+  function openPicker($inp) {
     hidePanels();
-    $fileCamera.click();
-  });
-  document.getElementById('attach-photo').addEventListener('click', () => {
-    hidePanels();
-    $filePhoto.click();
-  });
-  document.getElementById('attach-file').addEventListener('click', () => {
-    hidePanels();
-    $fileAny.click();
-  });
+    window.ChatUI.pickingFile = true;
+    $inp.click();
+  }
+
+  document.getElementById('attach-camera').addEventListener('click', () => openPicker($fileCamera));
+  document.getElementById('attach-photo').addEventListener('click', () => openPicker($filePhoto));
+  document.getElementById('attach-file').addEventListener('click', () => openPicker($fileAny));
 
   // Cámara y galería usan el mismo flujo de foto
   [$fileCamera, $filePhoto].forEach(($inp) => {
@@ -293,6 +292,7 @@
     scrollToBottom,
     hidePanels,
     setBusy,
+    pickingFile: false, // true mientras hay cámara/selector del sistema abierto
     onSubmit(handler) {
       $form.addEventListener('submit', (e) => {
         e.preventDefault();

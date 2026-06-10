@@ -1,5 +1,5 @@
 // Service Worker: instalable + offline + notificaciones push + caché de stickers.
-const CACHE = 'calc-v3';
+const CACHE = 'calc-v4';
 const STICKER_CACHE = 'stickers-v1';
 const ASSETS = [
   './',

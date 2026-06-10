@@ -309,6 +309,30 @@
     });
   }
 
+  // ===== Escudo de privacidad =====
+  // Android saca una "foto" de la pantalla al pasar la app a segundo plano
+  // (vista de apps recientes). Con modo oculto activo, cerramos el chat al
+  // instante para que esa foto muestre solo la calculadora.
+  let pushPrompting = false; // true durante el diálogo de permiso de notificaciones
+
+  function lockForBackground() {
+    if (!settings || !settings.hidden) return;
+    if (ChatUI.pickingFile || pushPrompting) return; // cámara/galería/permiso: no bloquear
+    $setOverlay.classList.add('hidden');
+    $loginOverlay.classList.add('hidden');
+    if (!$chatOverlay.classList.contains('hidden')) closeChat();
+  }
+
+  window.addEventListener('blur', lockForBackground);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') lockForBackground();
+  });
+
+  // Al volver del selector de archivos/cámara, rearmar el escudo
+  window.addEventListener('focus', () => {
+    setTimeout(() => { ChatUI.pickingFile = false; }, 800);
+  });
+
   // ===== Notificaciones push (app cerrada / segundo plano) =====
   function urlBase64ToUint8Array(base64) {
     const padding = '='.repeat((4 - (base64.length % 4)) % 4);
@@ -335,15 +359,20 @@
       return false;
     }
     if (!window.ChatAPI.configured) return false;
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') return false;
-    const { reg } = await getSub();
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(window.APP_CONFIG.VAPID_PUBLIC)
-    });
-    await ChatAPI.savePushSub(settings.room, settings.name, sub.toJSON());
-    return true;
+    pushPrompting = true; // el diálogo de permiso quita el foco: no activar el escudo
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') return false;
+      const { reg } = await getSub();
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(window.APP_CONFIG.VAPID_PUBLIC)
+      });
+      await ChatAPI.savePushSub(settings.room, settings.name, sub.toJSON());
+      return true;
+    } finally {
+      pushPrompting = false;
+    }
   }
 
   async function disablePush() {
