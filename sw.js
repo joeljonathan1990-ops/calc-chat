@@ -1,5 +1,5 @@
 // Service Worker mínimo para que la app sea instalable y funcione offline (el chat sí necesita red).
-const CACHE = 'calc-v1';
+const CACHE = 'calc-v2';
 const ASSETS = [
   './',
   './index.html',

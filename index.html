@@ -88,12 +88,25 @@
 
       <div id="messages" class="messages"></div>
 
+      <!-- Panel de stickers -->
+      <div id="sticker-panel" class="sticker-panel hidden"></div>
+
+      <!-- Menú adjuntar -->
+      <div id="attach-menu" class="attach-menu hidden">
+        <button type="button" id="attach-photo" class="attach-opt">📷<span>Foto</span></button>
+        <button type="button" id="attach-file" class="attach-opt">📄<span>Archivo</span></button>
+      </div>
+
       <form id="chat-form" class="chat-input">
+        <button type="button" id="btn-sticker" class="icon-btn input-btn" aria-label="Stickers">😊</button>
         <input id="message-input" type="text" placeholder="Mensaje" autocomplete="off" />
+        <button type="button" id="btn-attach" class="icon-btn input-btn" aria-label="Adjuntar">📎</button>
         <button type="submit" class="send-btn" aria-label="Enviar">
           <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
         </button>
       </form>
+      <input id="file-photo" type="file" accept="image/*" class="hidden-input" />
+      <input id="file-any" type="file" class="hidden-input" />
     </div>
   </div>
 
@@ -114,6 +127,37 @@
         <input id="set-secret" type="text" maxlength="30" />
         <small class="muted">Debe terminar en = (ej: 7*7=, 1+2+3=, 99+1=)</small>
       </label>
+
+      <div class="opt-section">
+        <div class="opt-title">Privacidad</div>
+        <div class="switch-row">
+          <div class="opt-text">
+            <div class="opt-name">Modo oculto</div>
+            <div class="muted">La app se ve como calculadora y el chat se abre con el código secreto</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="set-hidden" /><span class="slider"></span></label>
+        </div>
+        <div class="switch-row" id="row-autolock">
+          <div class="opt-text">
+            <div class="opt-name">Bloquear al enviar</div>
+            <div class="muted">Después de cada mensaje vuelve a la calculadora (pide el código de nuevo)</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="set-autolock" /><span class="slider"></span></label>
+        </div>
+        <div class="switch-row" id="row-idle">
+          <div class="opt-text">
+            <div class="opt-name">Bloqueo por inactividad</div>
+            <div class="muted">Si no tocás el chat un rato, vuelve solo a la calculadora</div>
+          </div>
+          <select id="set-idle" class="select">
+            <option value="0">Nunca</option>
+            <option value="60">1 min</option>
+            <option value="300">5 min</option>
+            <option value="900">15 min</option>
+          </select>
+        </div>
+      </div>
+
       <div class="row">
         <button id="set-save" class="primary">Guardar</button>
         <button id="set-cancel" class="secondary">Cancelar</button>
