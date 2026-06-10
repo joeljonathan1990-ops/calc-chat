@@ -1,5 +1,5 @@
-// UI del chat: renderiza burbujas (texto, sticker, foto, archivo), maneja input,
-// panel de stickers, menú adjuntar y separadores por día.
+// UI del chat: burbujas (texto, sticker animado, foto, archivo), input,
+// panel de stickers por categorías, menú adjuntar y separadores por día.
 (function () {
   const $messages = document.getElementById('messages');
   const $form     = document.getElementById('chat-form');
@@ -9,19 +9,14 @@
   const $peerStatus = document.getElementById('peer-status');
 
   const $stickerPanel = document.getElementById('sticker-panel');
+  const $stickerTabs  = document.getElementById('sticker-tabs');
+  const $stickerGrid  = document.getElementById('sticker-grid');
   const $attachMenu   = document.getElementById('attach-menu');
   const $btnSticker   = document.getElementById('btn-sticker');
   const $btnAttach    = document.getElementById('btn-attach');
+  const $fileCamera   = document.getElementById('file-camera');
   const $filePhoto    = document.getElementById('file-photo');
   const $fileAny      = document.getElementById('file-any');
-
-  const STICKERS = [
-    '😂','🤣','😊','😍','😘','🥰','😎','🙃',
-    '😅','😏','🤤','😜','😭','🥺','😢','😡',
-    '🙄','😴','🤒','🤔','🙈','🤫','👍','👎',
-    '🙏','👏','💪','🤝','✌️','💋','❤️','💔',
-    '🔥','✨','🎉','🥳','💯','🌹','🍻','☕'
-  ];
 
   const seenIds = new Set();
   let lastDayKey = null;
@@ -71,6 +66,25 @@
     return a.url;
   }
 
+  // Sticker: intenta la animación de Google; si no existe, emoji gigante
+  function stickerElement(emoji) {
+    const wrap = document.createElement('div');
+    wrap.className = 'sticker-body';
+    const img = document.createElement('img');
+    img.className = 'sticker-anim';
+    img.alt = emoji;
+    img.loading = 'lazy';
+    img.src = window.EMOJI_ANIM_URL(window.emojiToAnimCode(emoji));
+    img.onerror = () => {
+      const t = document.createElement('div');
+      t.className = 'sticker-static';
+      t.textContent = emoji;
+      wrap.replaceChildren(t);
+    };
+    wrap.appendChild(img);
+    return wrap;
+  }
+
   function appendMessage(msg, me) {
     if (seenIds.has(msg.id)) return;
     seenIds.add(msg.id);
@@ -93,10 +107,7 @@
 
     if (kind === 'sticker') {
       el.classList.add('sticker');
-      const s = document.createElement('div');
-      s.className = 'sticker-body';
-      s.textContent = msg.body;
-      el.appendChild(s);
+      el.appendChild(stickerElement(msg.body));
       metaBlock = true;
     } else if (kind === 'image' && url) {
       el.classList.add('media');
@@ -170,20 +181,52 @@
     if (!busy) $peerStatus.textContent = text;
   }
 
-  // ===== Panel de stickers y menú adjuntar =====
+  // ===== Panel de stickers con pestañas =====
   let stickerHandler = null;
   let photoHandler = null;
   let fileHandler = null;
+  let activeSetId = null;
 
-  STICKERS.forEach(emoji => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = emoji;
-    b.addEventListener('click', () => {
+  function renderStickerGrid(set) {
+    activeSetId = set.id;
+    $stickerTabs.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('active', b.dataset.set === set.id);
+    });
+    $stickerGrid.replaceChildren();
+    const pick = (emoji) => () => {
       hidePanels();
       if (stickerHandler) stickerHandler(emoji);
+    };
+    set.anim.forEach(([emoji, code]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      const img = document.createElement('img');
+      img.src = window.EMOJI_ANIM_URL(code);
+      img.alt = emoji;
+      img.loading = 'lazy';
+      img.onerror = () => { b.textContent = emoji; };
+      b.appendChild(img);
+      b.addEventListener('click', pick(emoji));
+      $stickerGrid.appendChild(b);
     });
-    $stickerPanel.appendChild(b);
+    set.plain.forEach((emoji) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'plain';
+      b.textContent = emoji;
+      b.addEventListener('click', pick(emoji));
+      $stickerGrid.appendChild(b);
+    });
+  }
+
+  window.STICKER_SETS.forEach((set) => {
+    const t = document.createElement('button');
+    t.type = 'button';
+    t.dataset.set = set.id;
+    t.textContent = set.tab;
+    t.title = set.name;
+    t.addEventListener('click', () => renderStickerGrid(set));
+    $stickerTabs.appendChild(t);
   });
 
   function hidePanels() {
@@ -194,7 +237,9 @@
   $btnSticker.addEventListener('click', () => {
     if (busy) return;
     $attachMenu.classList.add('hidden');
+    const opening = $stickerPanel.classList.contains('hidden');
     $stickerPanel.classList.toggle('hidden');
+    if (opening && !activeSetId) renderStickerGrid(window.STICKER_SETS[0]);
   });
 
   $btnAttach.addEventListener('click', () => {
@@ -203,6 +248,10 @@
     $attachMenu.classList.toggle('hidden');
   });
 
+  document.getElementById('attach-camera').addEventListener('click', () => {
+    hidePanels();
+    $fileCamera.click();
+  });
   document.getElementById('attach-photo').addEventListener('click', () => {
     hidePanels();
     $filePhoto.click();
@@ -212,10 +261,13 @@
     $fileAny.click();
   });
 
-  $filePhoto.addEventListener('change', () => {
-    const f = $filePhoto.files[0];
-    $filePhoto.value = '';
-    if (f && photoHandler) photoHandler(f);
+  // Cámara y galería usan el mismo flujo de foto
+  [$fileCamera, $filePhoto].forEach(($inp) => {
+    $inp.addEventListener('change', () => {
+      const f = $inp.files[0];
+      $inp.value = '';
+      if (f && photoHandler) photoHandler(f);
+    });
   });
   $fileAny.addEventListener('change', () => {
     const f = $fileAny.files[0];

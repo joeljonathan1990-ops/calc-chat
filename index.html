@@ -88,12 +88,16 @@
 
       <div id="messages" class="messages"></div>
 
-      <!-- Panel de stickers -->
-      <div id="sticker-panel" class="sticker-panel hidden"></div>
+      <!-- Panel de stickers (animados, por categorías) -->
+      <div id="sticker-panel" class="sticker-panel hidden">
+        <div id="sticker-tabs" class="sticker-tabs"></div>
+        <div id="sticker-grid" class="sticker-grid"></div>
+      </div>
 
       <!-- Menú adjuntar -->
       <div id="attach-menu" class="attach-menu hidden">
-        <button type="button" id="attach-photo" class="attach-opt">📷<span>Foto</span></button>
+        <button type="button" id="attach-camera" class="attach-opt">📸<span>Cámara</span></button>
+        <button type="button" id="attach-photo" class="attach-opt">🖼️<span>Galería</span></button>
         <button type="button" id="attach-file" class="attach-opt">📄<span>Archivo</span></button>
       </div>
 
@@ -105,6 +109,7 @@
           <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
         </button>
       </form>
+      <input id="file-camera" type="file" accept="image/*" capture="environment" class="hidden-input" />
       <input id="file-photo" type="file" accept="image/*" class="hidden-input" />
       <input id="file-any" type="file" class="hidden-input" />
     </div>
@@ -158,6 +163,37 @@
         </div>
       </div>
 
+      <div class="opt-section">
+        <div class="opt-title">Notificaciones</div>
+        <div class="switch-row">
+          <div class="opt-text">
+            <div class="opt-name">Sonido de mensaje</div>
+            <div class="muted">Suena al llegar un mensaje con la app abierta</div>
+          </div>
+          <select id="set-sound" class="select">
+            <option value="pop">Pop</option>
+            <option value="campanita">Campanita</option>
+            <option value="ding">Ding</option>
+            <option value="burbuja">Burbuja</option>
+            <option value="off">Silencio</option>
+          </select>
+        </div>
+        <div class="switch-row">
+          <div class="opt-text">
+            <div class="opt-name">Vibrar</div>
+            <div class="muted">Vibración corta y discreta al recibir</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="set-vibrate" /><span class="slider"></span></label>
+        </div>
+        <div class="switch-row">
+          <div class="opt-text">
+            <div class="opt-name">Avisos con la app cerrada</div>
+            <div class="muted">Notificación discreta ("Calculadora") aunque la app esté cerrada o el celu bloqueado</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="set-push" /><span class="slider"></span></label>
+        </div>
+      </div>
+
       <div class="row">
         <button id="set-save" class="primary">Guardar</button>
         <button id="set-cancel" class="secondary">Cancelar</button>
@@ -166,10 +202,14 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.1/dist/umd/supabase.min.js"
+          integrity="sha384-UQ9Ztz63gzT2JZCuDRkNXV8RP/gXxdPUuM9LKlz2BzqGx9xFYNAK8yAEgbfZHs7P"
+          crossorigin="anonymous"></script>
   <script src="js/config.js"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/calculator.js"></script>
+  <script src="js/stickers.js"></script>
+  <script src="js/sounds.js"></script>
   <script src="js/chat.js"></script>
   <script src="js/app.js"></script>
 </body>

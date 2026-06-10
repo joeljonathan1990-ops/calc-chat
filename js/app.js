@@ -4,8 +4,9 @@
   const UNREAD_KEY = 'calcchat.unread.v1';
 
   // Ajustes de comportamiento (por dispositivo). hidden=modo oculto,
-  // autoLock=bloquear al enviar, idleLock=segundos de inactividad (0=nunca).
-  const BEHAVIOR_DEFAULTS = { hidden: true, autoLock: true, idleLock: 300 };
+  // autoLock=bloquear al enviar, idleLock=segundos de inactividad (0=nunca),
+  // sound=tono de mensaje, vibrate=vibración, push=avisos con la app cerrada.
+  const BEHAVIOR_DEFAULTS = { hidden: true, autoLock: true, idleLock: 300, sound: 'pop', vibrate: true, push: false };
 
   const MAX_FILE_BYTES = 20 * 1024 * 1024; // límite del bucket
 
@@ -183,6 +184,12 @@
   const $setIdle     = document.getElementById('set-idle');
   const $rowAutolock = document.getElementById('row-autolock');
   const $rowIdle     = document.getElementById('row-idle');
+  const $setSound    = document.getElementById('set-sound');
+  const $setVibrate  = document.getElementById('set-vibrate');
+  const $setPush     = document.getElementById('set-push');
+
+  // Probar el tono al elegirlo
+  $setSound.addEventListener('change', () => Sounds.play($setSound.value));
 
   // Con modo oculto apagado, los bloqueos no aplican (el chat ES la app)
   function refreshLockRows() {
@@ -201,13 +208,16 @@
     $setHidden.checked = settings.hidden;
     $setAutolock.checked = settings.autoLock;
     $setIdle.value = String(settings.idleLock);
+    $setSound.value = settings.sound;
+    $setVibrate.checked = settings.vibrate;
+    $setPush.checked = settings.push;
     refreshLockRows();
     $setOverlay.classList.remove('hidden');
   });
 
   $setCancel.addEventListener('click', () => $setOverlay.classList.add('hidden'));
 
-  $setSave.addEventListener('click', () => {
+  $setSave.addEventListener('click', async () => {
     const name   = $setName.value.trim();
     const room   = $setRoom.value.trim();
     const secret = $setSecret.value.trim();
@@ -216,11 +226,17 @@
       return;
     }
     const roomChanged = room !== settings.room;
+    const pushWas = settings.push;
+    const pushWanted = $setPush.checked;
+
     settings = Object.assign({}, settings, {
       name, room, secret,
       hidden: $setHidden.checked,
       autoLock: $setAutolock.checked,
-      idleLock: parseInt($setIdle.value, 10) || 0
+      idleLock: parseInt($setIdle.value, 10) || 0,
+      sound: $setSound.value,
+      vibrate: $setVibrate.checked,
+      push: pushWanted
     });
     saveSettings(settings);
     if (roomChanged) {
@@ -230,6 +246,30 @@
     ChatUI.setPeer(settings.room);
     $setOverlay.classList.add('hidden');
     resetIdle();
+
+    // Push: activar/desactivar/re-vincular según corresponda
+    try {
+      if (pushWanted && !pushWas) {
+        const ok = await enablePush();
+        if (!ok) {
+          settings.push = false;
+          saveSettings(settings);
+          alert('No se pudieron activar los avisos. Revisá que el navegador tenga permiso de notificaciones para esta app.');
+        }
+      } else if (!pushWanted && pushWas) {
+        await disablePush();
+      } else if (pushWanted && pushWas) {
+        await syncPush(); // re-vincular por si cambió la sala o el nombre
+      }
+    } catch (e) {
+      console.error(e);
+      if (pushWanted && !pushWas) {
+        // La suscripción falló con excepción: revertir para no quedar "activado" en falso
+        settings.push = false;
+        saveSettings(settings);
+        alert('No se pudieron activar los avisos: ' + e.message);
+      }
+    }
   });
 
   $setClear.addEventListener('click', () => {
@@ -257,14 +297,71 @@
       const me = msg.sender === settings.name;
       ChatUI.appendMessage(msg, me);
       if (!me) {
+        // Sonido configurable al recibir (con la app abierta)
+        Sounds.play(settings.sound);
         // Mensaje entrante: si el chat NO está abierto, marcar unread
         if ($chatOverlay.classList.contains('hidden')) {
           setUnread(true);
           // Vibración corta si el dispositivo lo soporta (señal discreta)
-          if (navigator.vibrate) navigator.vibrate(50);
+          if (settings.vibrate && navigator.vibrate) navigator.vibrate(50);
         }
       }
     });
+  }
+
+  // ===== Notificaciones push (app cerrada / segundo plano) =====
+  function urlBase64ToUint8Array(base64) {
+    const padding = '='.repeat((4 - (base64.length % 4)) % 4);
+    const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(b64);
+    const arr = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+    return arr;
+  }
+
+  function pushSupported() {
+    return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  }
+
+  async function getSub() {
+    const reg = await navigator.serviceWorker.ready;
+    return { reg, sub: await reg.pushManager.getSubscription() };
+  }
+
+  // Pide permiso, se suscribe y guarda la suscripción en el servidor
+  async function enablePush() {
+    if (!pushSupported()) {
+      alert('Este navegador no soporta avisos en segundo plano. En iPhone: primero "Agregar a pantalla de inicio".');
+      return false;
+    }
+    if (!window.ChatAPI.configured) return false;
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return false;
+    const { reg } = await getSub();
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(window.APP_CONFIG.VAPID_PUBLIC)
+    });
+    await ChatAPI.savePushSub(settings.room, settings.name, sub.toJSON());
+    return true;
+  }
+
+  async function disablePush() {
+    if (!pushSupported()) return;
+    const { sub } = await getSub();
+    if (sub) {
+      if (window.ChatAPI.configured) await ChatAPI.removePushSub(sub.endpoint);
+      await sub.unsubscribe();
+    }
+  }
+
+  // Mantiene la suscripción vinculada a la sala/nombre actuales
+  async function syncPush() {
+    if (!pushSupported() || !window.ChatAPI.configured) return;
+    if (Notification.permission !== 'granted') return;
+    const { sub } = await getSub();
+    if (sub) await ChatAPI.savePushSub(settings.room, settings.name, sub.toJSON());
+    else await enablePush();
   }
 
   // ===== Envío de mensajes (texto, sticker, foto, archivo) =====
@@ -374,7 +471,12 @@
   // Service worker para PWA
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.register('sw.js')
+        .then(() => {
+          // Si los avisos están activos, mantener la suscripción al día
+          if (settings && settings.push) syncPush().catch(() => {});
+        })
+        .catch(() => {});
     });
   }
 })();

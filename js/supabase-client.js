@@ -15,6 +15,8 @@
       init() {},
       async send() { throw new Error('Supabase no configurado'); },
       async upload() { throw new Error('Supabase no configurado'); },
+      async savePushSub() { throw new Error('Supabase no configurado'); },
+      async removePushSub() {},
       onMessage() {},
       async loadHistory() { return []; },
       disconnect() {}
@@ -76,6 +78,19 @@
         .upload(path, blob, { contentType: mime || 'application/octet-stream', upsert: false });
       if (error) throw error;
       return client.storage.from('chat-media').getPublicUrl(path).data.publicUrl;
+    },
+
+    // Suscripción a notificaciones push (una por dispositivo)
+    async savePushSub(room, sender, sub) {
+      const { error } = await client.rpc('save_push_sub', {
+        p_room: room, p_sender: sender, p_sub: sub
+      });
+      if (error) throw error;
+    },
+
+    async removePushSub(endpoint) {
+      const { error } = await client.rpc('remove_push_sub', { p_endpoint: endpoint });
+      if (error) console.error(error);
     },
 
     onMessage(fn) { listeners.push(fn); },
