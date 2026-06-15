@@ -4,9 +4,9 @@
   const UNREAD_KEY = 'calcchat.unread.v1';
 
   // Ajustes de comportamiento (por dispositivo). hidden=modo oculto,
-  // autoLock=bloquear al enviar, idleLock=segundos de inactividad (0=nunca),
+  // idleLock=segundos de inactividad para bloquear (0=nunca),
   // sound=tono de mensaje, vibrate=vibración, push=avisos con la app cerrada.
-  const BEHAVIOR_DEFAULTS = { hidden: true, autoLock: true, idleLock: 300, sound: 'pop', vibrate: true, push: false };
+  const BEHAVIOR_DEFAULTS = { hidden: true, idleLock: 300, sound: 'pop', vibrate: true, push: false };
 
   const MAX_FILE_BYTES = 20 * 1024 * 1024; // límite del bucket
 
@@ -182,9 +182,7 @@
   const $setClear  = document.getElementById('set-clear');
 
   const $setHidden   = document.getElementById('set-hidden');
-  const $setAutolock = document.getElementById('set-autolock');
   const $setIdle     = document.getElementById('set-idle');
-  const $rowAutolock = document.getElementById('row-autolock');
   const $rowIdle     = document.getElementById('row-idle');
   const $setSound    = document.getElementById('set-sound');
   const $setVibrate  = document.getElementById('set-vibrate');
@@ -196,9 +194,7 @@
   // Con modo oculto apagado, los bloqueos no aplican (el chat ES la app)
   function refreshLockRows() {
     const on = $setHidden.checked;
-    $rowAutolock.classList.toggle('disabled', !on);
     $rowIdle.classList.toggle('disabled', !on);
-    $setAutolock.disabled = !on;
     $setIdle.disabled = !on;
   }
   $setHidden.addEventListener('change', refreshLockRows);
@@ -208,7 +204,6 @@
     $setRoom.value = settings.room;
     $setSecret.value = settings.secret;
     $setHidden.checked = settings.hidden;
-    $setAutolock.checked = settings.autoLock;
     $setIdle.value = String(settings.idleLock);
     $setSound.value = settings.sound;
     $setVibrate.checked = settings.vibrate;
@@ -234,7 +229,6 @@
     settings = Object.assign({}, settings, {
       name, room, secret,
       hidden: $setHidden.checked,
-      autoLock: $setAutolock.checked,
       idleLock: parseInt($setIdle.value, 10) || 0,
       sound: $setSound.value,
       vibrate: $setVibrate.checked,
@@ -450,8 +444,6 @@
           created_at: new Date().toISOString()
         }, true);
       }
-      // 👉 Bloqueo al enviar: solo si está en modo oculto y la opción activa
-      if (settings.hidden && settings.autoLock) closeChat();
     } catch (e) {
       console.error(e);
       alert('No se pudo enviar: ' + e.message);
