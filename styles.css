@@ -275,7 +275,7 @@ body.has-unread #btn-equals {
 
 .chat-input {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 6px;
   background: #1f2c33;
   padding: 8px max(8px, env(safe-area-inset-right)) 8px max(8px, env(safe-area-inset-left));
@@ -294,6 +294,10 @@ body.has-unread #btn-equals {
   font-size: 16px;
   outline: none;
   font-family: inherit;
+  resize: none;
+  line-height: 1.35;
+  max-height: 120px;       /* crece hasta ~5 líneas y luego hace scroll */
+  overflow-y: auto;
 }
 
 #message-input::placeholder { color: #8696a0; }
@@ -313,6 +317,42 @@ body.has-unread #btn-equals {
 }
 
 .send-btn:active { transform: scale(0.92); }
+
+/* Botón "pantalla completa" (aparece solo cuando el texto es largo) */
+#btn-expand { display: none; }
+#btn-expand.show { display: flex; }
+
+/* ===== PANTALLA COMPLETA PARA ESCRIBIR ===== */
+.compose-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: #0b141a;
+}
+.compose-text {
+  flex: 1;
+  width: 100%;
+  background: #0b141a;
+  color: #e9edef;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 16px;
+  font-size: 17px;
+  line-height: 1.5;
+  font-family: inherit;
+}
+.compose-text::placeholder { color: #8696a0; }
+.compose-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+  background: #1f2c33;
+}
+.compose-bar .primary { min-width: 130px; }
 
 /* ===== LOGIN / SETTINGS CARD ===== */
 .login-card {

@@ -14,6 +14,7 @@
   const $attachMenu   = document.getElementById('attach-menu');
   const $btnSticker   = document.getElementById('btn-sticker');
   const $btnAttach    = document.getElementById('btn-attach');
+  const $btnExpand    = document.getElementById('btn-expand');
   const $fileCamera   = document.getElementById('file-camera');
   const $filePhoto    = document.getElementById('file-photo');
   const $fileAny      = document.getElementById('file-any');
@@ -276,6 +277,57 @@
 
   $input.addEventListener('focus', hidePanels);
 
+  // ===== Input que crece + pantalla completa para textos largos =====
+  const $composeOverlay = document.getElementById('compose-overlay');
+  const $composeText    = document.getElementById('compose-text');
+  const $composeClose   = document.getElementById('compose-close');
+  const $composeSend    = document.getElementById('compose-send');
+  // En compu (mouse) Enter envía y Shift+Enter hace salto de línea; en celular Enter = salto.
+  const sendsOnEnter = window.matchMedia('(pointer: fine)').matches;
+
+  // Ajusta la altura del casillero al contenido y muestra el botón de pantalla
+  // completa cuando el texto se pone largo.
+  function autoGrow() {
+    $input.style.height = 'auto';
+    $input.style.height = Math.min($input.scrollHeight, 120) + 'px';
+    const tall = $input.scrollHeight > 78 || $input.value.length > 120;
+    $btnExpand.classList.toggle('show', tall);
+  }
+  $input.addEventListener('input', autoGrow);
+
+  function submitForm() {
+    if ($form.requestSubmit) $form.requestSubmit();
+    else $form.dispatchEvent(new Event('submit', { cancelable: true }));
+  }
+
+  $input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && sendsOnEnter) {
+      e.preventDefault();
+      submitForm();
+    }
+  });
+
+  function openCompose() {
+    $composeText.value = $input.value;
+    $composeOverlay.classList.remove('hidden');
+    setTimeout(() => $composeText.focus(), 50);
+  }
+  function closeCompose(keepText) {
+    if (keepText) { $input.value = $composeText.value; autoGrow(); }
+    $composeOverlay.classList.add('hidden');
+  }
+  $btnExpand.addEventListener('click', openCompose);
+  $composeClose.addEventListener('click', () => { closeCompose(true); $input.focus(); });
+  $composeSend.addEventListener('click', () => {
+    $input.value = $composeText.value;
+    closeCompose(false);
+    submitForm();
+  });
+  // Privacidad: si la app pasa a segundo plano, cerrar la pantalla de escribir
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') closeCompose(true);
+  });
+
   // Mientras sube un archivo: bloquear input y mostrar estado
   function setBusy(text) {
     busy = !!text;
@@ -300,6 +352,7 @@
         const text = $input.value.trim();
         if (!text) return;
         $input.value = '';
+        autoGrow();
         hidePanels();
         handler(text);
       });
