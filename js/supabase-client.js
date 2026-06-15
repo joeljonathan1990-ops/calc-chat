@@ -65,14 +65,15 @@
 
     // kind: 'text' | 'sticker' | 'image' | 'file'
     // attachment: { url, name, size, mime } o null
-    async send(text, kind = 'text', attachment = null) {
+    async send(text, kind = 'text', attachment = null, reply = null) {
       if (!currentRoom || !currentSender) throw new Error('Chat no inicializado');
       const { data, error } = await client.rpc('send_chat', {
         p_room: currentRoom,
         p_sender: currentSender,
         p_body: text,
         p_kind: kind,
-        p_attachment: attachment
+        p_attachment: attachment,
+        p_reply_to: reply
       });
       if (error) throw error;
       return data;

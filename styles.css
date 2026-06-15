@@ -354,6 +354,49 @@ body.has-unread #btn-equals {
 }
 .compose-bar .primary { min-width: 130px; }
 
+/* ===== RESPONDER / CITAR MENSAJES ===== */
+.bubble { touch-action: pan-y; }   /* scroll vertical nativo; el swipe horizontal lo maneja JS */
+
+/* Barra "Respondiendo a..." arriba del casillero */
+.reply-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1f2c33;
+  border-left: 3px solid #00a884;
+  margin: 0 8px;
+  padding: 6px 10px;
+  border-radius: 6px 6px 0 0;
+  flex-shrink: 0;
+}
+.reply-bar.hidden { display: none; }
+.reply-bar-info { flex: 1; min-width: 0; }
+.reply-bar-sender { color: #00a884; font-size: 12.5px; font-weight: 600; }
+.reply-bar-text {
+  color: #8696a0; font-size: 13px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.reply-cancel {
+  background: transparent; border: none; color: #8696a0;
+  font-size: 16px; cursor: pointer; padding: 4px 6px; flex-shrink: 0;
+}
+
+/* Cita dentro de la burbuja (el mensaje al que se responde) */
+.reply-quote {
+  border-left: 3px solid #00d3a7;
+  background: rgba(0,0,0,0.20);
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  overflow: hidden;
+}
+.reply-quote-sender { color: #00d3a7; font-weight: 600; font-size: 12px; }
+.reply-quote-text {
+  color: rgba(233,237,239,0.75);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
 /* ===== LOGIN / SETTINGS CARD ===== */
 .login-card {
   background: #1f2c33;

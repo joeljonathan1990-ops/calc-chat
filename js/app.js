@@ -441,17 +441,18 @@
 
   // ===== Envío de mensajes (texto, sticker, foto, archivo) =====
   async function sendMessage(kind, body, attachment) {
+    const reply = ChatUI.takeReply();
     try {
       if (window.ChatAPI.configured) {
         // El broadcast no nos llega a nosotros (self:false) → agregar la fila devuelta
-        const row = await ChatAPI.send(body, kind, attachment);
+        const row = await ChatAPI.send(body, kind, attachment, reply);
         ChatUI.appendMessage(row, true);
       } else {
         // Modo demo
         ChatUI.appendMessage({
           id: Date.now(),
           sender: settings.name,
-          body, kind, attachment,
+          body, kind, attachment, reply_to: reply,
           created_at: new Date().toISOString()
         }, true);
       }

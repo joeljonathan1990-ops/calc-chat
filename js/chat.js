@@ -15,6 +15,10 @@
   const $btnSticker   = document.getElementById('btn-sticker');
   const $btnAttach    = document.getElementById('btn-attach');
   const $btnExpand    = document.getElementById('btn-expand');
+  const $replyBar       = document.getElementById('reply-bar');
+  const $replyBarSender = document.getElementById('reply-bar-sender');
+  const $replyBarText   = document.getElementById('reply-bar-text');
+  const $replyCancel    = document.getElementById('reply-cancel');
   const $fileCamera   = document.getElementById('file-camera');
   const $filePhoto    = document.getElementById('file-photo');
   const $fileAny      = document.getElementById('file-any');
@@ -104,7 +108,23 @@
 
     const el = document.createElement('div');
     el.className = `bubble ${me ? 'me' : 'them'}`;
+    el._msg = msg; // para el gesto de responder
     let metaBlock = false;
+
+    // Cita: si este mensaje responde a otro, mostrar el original arriba
+    if (msg.reply_to) {
+      const q = document.createElement('div');
+      q.className = 'reply-quote';
+      const qs = document.createElement('div');
+      qs.className = 'reply-quote-sender';
+      qs.textContent = msg.reply_to.sender || '';
+      const qt = document.createElement('div');
+      qt.className = 'reply-quote-text';
+      qt.textContent = msg.reply_to.snippet || '';
+      q.appendChild(qs);
+      q.appendChild(qt);
+      el.appendChild(q);
+    }
 
     if (kind === 'sticker') {
       el.classList.add('sticker');
@@ -170,6 +190,7 @@
     $messages.innerHTML = '';
     seenIds.clear();
     lastDayKey = null;
+    clearReply();
   }
 
   function setPeer(roomName) {
@@ -328,6 +349,76 @@
     if (document.visibilityState === 'hidden') closeCompose(true);
   });
 
+  // ===== Responder mensajes (deslizar / doble clic) =====
+  let replyingTo = null;
+
+  function replySnippet(msg) {
+    const kind = msg.kind || 'text';
+    if (kind === 'sticker') return msg.body || '🙂';
+    if (kind === 'image') return '📷 Foto';
+    if (kind === 'file') return '📄 ' + ((msg.attachment && msg.attachment.name) || 'Archivo');
+    return (msg.body || '').slice(0, 80);
+  }
+
+  function setReply(msg) {
+    if (!msg || !msg.id) return;
+    replyingTo = { id: msg.id, sender: msg.sender, snippet: replySnippet(msg), kind: msg.kind || 'text' };
+    $replyBarSender.textContent = msg.sender || '';
+    $replyBarText.textContent = replyingTo.snippet;
+    $replyBar.classList.remove('hidden');
+    setTimeout(() => $input.focus(), 30);
+  }
+  function clearReply() {
+    replyingTo = null;
+    $replyBar.classList.add('hidden');
+  }
+  function takeReply() {
+    const r = replyingTo;
+    clearReply();
+    return r;
+  }
+  $replyCancel.addEventListener('click', clearReply);
+
+  // Gesto táctil: deslizar una burbuja hacia la derecha para responderla
+  let swipeEl = null, swipeStartX = 0, swipeStartY = 0, swiping = false;
+  $messages.addEventListener('touchstart', (e) => {
+    const b = e.target.closest('.bubble');
+    if (!b || !b._msg) { swipeEl = null; return; }
+    swipeEl = b;
+    swipeStartX = e.touches[0].clientX;
+    swipeStartY = e.touches[0].clientY;
+    swiping = false;
+  }, { passive: true });
+  $messages.addEventListener('touchmove', (e) => {
+    if (!swipeEl) return;
+    const dx = e.touches[0].clientX - swipeStartX;
+    const dy = e.touches[0].clientY - swipeStartY;
+    if (Math.abs(dy) > Math.abs(dx)) { swipeEl.style.transform = ''; swipeEl = null; return; }
+    if (dx > 0) {
+      swiping = true;
+      swipeEl.style.transition = 'none';
+      swipeEl.style.transform = `translateX(${Math.min(dx, 80)}px)`;
+    }
+  }, { passive: true });
+  $messages.addEventListener('touchend', (e) => {
+    if (!swipeEl) return;
+    const dx = e.changedTouches[0].clientX - swipeStartX;
+    swipeEl.style.transition = 'transform 0.15s';
+    swipeEl.style.transform = '';
+    if (swiping && dx > 55) {
+      setReply(swipeEl._msg);
+      if (navigator.vibrate) navigator.vibrate(20);
+    }
+    swipeEl = null;
+    swiping = false;
+  }, { passive: true });
+
+  // En compu: doble clic en un mensaje para responderlo
+  $messages.addEventListener('dblclick', (e) => {
+    const b = e.target.closest('.bubble');
+    if (b && b._msg) setReply(b._msg);
+  });
+
   // Mientras sube un archivo: bloquear input y mostrar estado
   function setBusy(text) {
     busy = !!text;
@@ -344,6 +435,8 @@
     scrollToBottom,
     hidePanels,
     setBusy,
+    setReply,
+    takeReply,
     pickingFile: false, // true mientras hay cámara/selector del sistema abierto
     onSubmit(handler) {
       $form.addEventListener('submit', (e) => {
