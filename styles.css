@@ -397,6 +397,49 @@ body.has-unread #btn-equals {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
+/* ===== REACCIONES ===== */
+.bubble.has-reactions { margin-bottom: 12px; }
+
+.reactions {
+  position: absolute;
+  bottom: -11px;
+  right: 6px;
+  display: flex;
+  gap: 2px;
+  background: #1f2c33;
+  border: 1px solid #0b141a;
+  border-radius: 11px;
+  padding: 1px 5px;
+  font-size: 12.5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+.bubble.me .reactions { right: auto; left: 6px; }
+.reaction-chip { line-height: 1.5; }
+
+/* Selector de emojis para reaccionar */
+.reaction-picker {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  gap: 2px;
+  background: #233138;
+  border-radius: 24px;
+  padding: 6px 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  animation: slideUp 0.12s ease-out;
+}
+.reaction-picker.hidden { display: none; }
+.reaction-picker button {
+  background: transparent;
+  border: none;
+  font-size: 26px;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 50%;
+  line-height: 1;
+}
+.reaction-picker button:active { transform: scale(1.3); }
+
 /* ===== LOGIN / SETTINGS CARD ===== */
 .login-card {
   background: #1f2c33;

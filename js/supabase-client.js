@@ -21,6 +21,8 @@
       async loadHistory() { return []; },
       async clearChat() {},
       onCleared() {},
+      async react() {},
+      onReaction() {},
       disconnect() {}
     };
     console.warn('[ChatAPI] Sin credenciales Supabase. Modo demo local.');
@@ -34,6 +36,7 @@
   let channel = null;
   let listeners = [];
   let clearedListeners = [];
+  let reactionListeners = [];
   let currentRoom = null;
   let currentSender = null;
 
@@ -59,6 +62,9 @@
         .on('broadcast', { event: 'chat_cleared' }, () => {
           // La otra persona borró la conversación: limpiar también acá
           clearedListeners.forEach(fn => fn());
+        })
+        .on('broadcast', { event: 'reaction' }, ({ payload }) => {
+          if (payload && payload.message_id != null) reactionListeners.forEach(fn => fn(payload));
         })
         .subscribe();
     },
@@ -123,10 +129,26 @@
 
     onCleared(fn) { clearedListeners.push(fn); },
 
+    // Pone/quita una reacción (emoji) a un mensaje. Devuelve las reacciones nuevas.
+    async react(messageId, emoji) {
+      if (!currentRoom || !currentSender) throw new Error('Chat no inicializado');
+      const { data, error } = await client.rpc('react_message', {
+        p_room: currentRoom,
+        p_message_id: messageId,
+        p_sender: currentSender,
+        p_emoji: emoji
+      });
+      if (error) throw error;
+      return data;
+    },
+
+    onReaction(fn) { reactionListeners.push(fn); },
+
     disconnect() {
       if (channel) { client.removeChannel(channel); channel = null; }
       listeners = [];
       clearedListeners = [];
+      reactionListeners = [];
     }
   };
 })();

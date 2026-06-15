@@ -24,6 +24,7 @@
   const $fileAny      = document.getElementById('file-any');
 
   const seenIds = new Set();
+  const msgEls = new Map(); // id de mensaje -> burbuja (para actualizar reacciones)
   let lastDayKey = null;
   let lastStatus = 'en línea';
   let busy = false;
@@ -176,6 +177,9 @@
     meta.textContent = fmtTime(msg.created_at);
     el.appendChild(meta);
 
+    msgEls.set(msg.id, el);
+    renderReactions(el, msg.reactions);
+
     $messages.appendChild(el);
     scrollToBottom();
   }
@@ -189,6 +193,7 @@
   function clearMessages() {
     $messages.innerHTML = '';
     seenIds.clear();
+    msgEls.clear();
     lastDayKey = null;
     clearReply();
   }
@@ -419,6 +424,87 @@
     if (b && b._msg) setReply(b._msg);
   });
 
+  // ===== Reacciones (mantener presionado / clic derecho) =====
+  const $reactionPicker = document.getElementById('reaction-picker');
+  let reactHandler = null;
+  let pickerMsgId = null;
+  let pickerJustOpened = false;
+
+  function renderReactions(el, reactions) {
+    const emojis = reactions ? Object.values(reactions) : [];
+    let chip = el.querySelector('.reactions');
+    el.classList.toggle('has-reactions', emojis.length > 0);
+    if (!emojis.length) { if (chip) chip.remove(); return; }
+    if (!chip) { chip = document.createElement('div'); chip.className = 'reactions'; el.appendChild(chip); }
+    const counts = {};
+    emojis.forEach(e => { counts[e] = (counts[e] || 0) + 1; });
+    chip.textContent = '';
+    Object.keys(counts).forEach(e => {
+      const s = document.createElement('span');
+      s.className = 'reaction-chip';
+      s.textContent = counts[e] > 1 ? e + counts[e] : e;
+      chip.appendChild(s);
+    });
+  }
+
+  function updateReactions(messageId, reactions) {
+    const el = msgEls.get(messageId);
+    if (!el) return;
+    if (el._msg) el._msg.reactions = reactions;
+    renderReactions(el, reactions);
+  }
+
+  function showReactionPicker(b) {
+    if (!b || !b._msg || b._msg.id == null) return;
+    pickerMsgId = b._msg.id;
+    $reactionPicker.classList.remove('hidden');
+    const pw = $reactionPicker.offsetWidth || 250;
+    const ph = $reactionPicker.offsetHeight || 44;
+    const r = b.getBoundingClientRect();
+    let left = b.classList.contains('me') ? r.right - pw : r.left;
+    left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+    let top = r.top - ph - 8;
+    if (top < 8) top = r.bottom + 8;
+    $reactionPicker.style.left = left + 'px';
+    $reactionPicker.style.top = top + 'px';
+    pickerJustOpened = true;
+    setTimeout(() => { pickerJustOpened = false; }, 350);
+  }
+  function hideReactionPicker() { $reactionPicker.classList.add('hidden'); pickerMsgId = null; }
+
+  $reactionPicker.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (pickerMsgId != null && reactHandler) reactHandler(pickerMsgId, btn.dataset.emoji);
+      hideReactionPicker();
+    });
+  });
+  document.addEventListener('click', (e) => {
+    if (pickerJustOpened) return;
+    if (!$reactionPicker.classList.contains('hidden') && !$reactionPicker.contains(e.target)) hideReactionPicker();
+  });
+
+  // Mantener presionado una burbuja para reaccionar
+  let lpTimer = null, lpStartX = 0, lpStartY = 0;
+  $messages.addEventListener('touchstart', (e) => {
+    const b = e.target.closest('.bubble');
+    if (!b || !b._msg) return;
+    lpStartX = e.touches[0].clientX; lpStartY = e.touches[0].clientY;
+    lpTimer = setTimeout(() => { lpTimer = null; showReactionPicker(b); if (navigator.vibrate) navigator.vibrate(25); }, 450);
+  }, { passive: true });
+  $messages.addEventListener('touchmove', (e) => {
+    if (!lpTimer) return;
+    if (Math.abs(e.touches[0].clientX - lpStartX) > 10 || Math.abs(e.touches[0].clientY - lpStartY) > 10) {
+      clearTimeout(lpTimer); lpTimer = null;
+    }
+  }, { passive: true });
+  $messages.addEventListener('touchend', () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } }, { passive: true });
+
+  // En compu: clic derecho en un mensaje para reaccionar
+  $messages.addEventListener('contextmenu', (e) => {
+    const b = e.target.closest('.bubble');
+    if (b && b._msg) { e.preventDefault(); showReactionPicker(b); }
+  });
+
   // Mientras sube un archivo: bloquear input y mostrar estado
   function setBusy(text) {
     busy = !!text;
@@ -437,6 +523,8 @@
     setBusy,
     setReply,
     takeReply,
+    onReact(fn) { reactHandler = fn; },
+    updateReactions,
     pickingFile: false, // true mientras hay cámara/selector del sistema abierto
     onSubmit(handler) {
       $form.addEventListener('submit', (e) => {

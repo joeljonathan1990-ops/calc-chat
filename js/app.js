@@ -314,6 +314,9 @@
 
     // Si la otra persona borra la conversación, limpiar la vista acá también
     ChatAPI.onCleared(() => ChatUI.clearMessages());
+
+    // Reacciones en vivo de la otra persona
+    ChatAPI.onReaction((p) => ChatUI.updateReactions(p.message_id, p.reactions));
   }
 
   // ===== Recepción robusta de mensajes =====
@@ -464,6 +467,12 @@
 
   ChatUI.onSubmit((text) => sendMessage('text', text, null));
   ChatUI.onSticker((emoji) => sendMessage('sticker', emoji, null));
+  ChatUI.onReact((messageId, emoji) => {
+    if (!window.ChatAPI.configured) return;
+    ChatAPI.react(messageId, emoji)
+      .then(reactions => ChatUI.updateReactions(messageId, reactions))
+      .catch(e => console.error(e));
+  });
 
   // ===== Fotos y archivos =====
   function safeName(name) {
