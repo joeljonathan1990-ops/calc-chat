@@ -268,9 +268,17 @@
     }
   });
 
-  $setClear.addEventListener('click', () => {
-    if (confirm('Borrar la conversación local? (No borra del servidor)')) {
+  $setClear.addEventListener('click', async () => {
+    if (!confirm('¿Borrar TODA la conversación para los dos? Se elimina del servidor y NO se puede deshacer.')) return;
+    if (!window.ChatAPI.configured) { ChatUI.clearMessages(); return; }
+    try {
+      await ChatAPI.clearChat();
       ChatUI.clearMessages();
+      $setOverlay.classList.add('hidden');
+      alert('Conversación borrada.');
+    } catch (e) {
+      console.error(e);
+      alert('No se pudo borrar: ' + e.message);
     }
   });
 
@@ -303,6 +311,9 @@
         }
       }
     });
+
+    // Si la otra persona borra la conversación, limpiar la vista acá también
+    ChatAPI.onCleared(() => ChatUI.clearMessages());
   }
 
   // ===== Recepción robusta de mensajes =====

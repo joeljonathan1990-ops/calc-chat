@@ -19,6 +19,8 @@
       async removePushSub() {},
       onMessage() {},
       async loadHistory() { return []; },
+      async clearChat() {},
+      onCleared() {},
       disconnect() {}
     };
     console.warn('[ChatAPI] Sin credenciales Supabase. Modo demo local.');
@@ -31,6 +33,7 @@
 
   let channel = null;
   let listeners = [];
+  let clearedListeners = [];
   let currentRoom = null;
   let currentSender = null;
 
@@ -52,6 +55,10 @@
           // payload es el JSON que mandó la RPC
           if (!payload || !payload.id) return;
           listeners.forEach(fn => fn(payload));
+        })
+        .on('broadcast', { event: 'chat_cleared' }, () => {
+          // La otra persona borró la conversación: limpiar también acá
+          clearedListeners.forEach(fn => fn());
         })
         .subscribe();
     },
@@ -105,9 +112,20 @@
       return data || [];
     },
 
+    // Borra toda la conversación de la sala (servidor) para ambos lados.
+    async clearChat() {
+      if (!currentRoom) throw new Error('Chat no inicializado');
+      const { data, error } = await client.rpc('clear_chat', { p_room: currentRoom });
+      if (error) throw error;
+      return data;
+    },
+
+    onCleared(fn) { clearedListeners.push(fn); },
+
     disconnect() {
       if (channel) { client.removeChannel(channel); channel = null; }
       listeners = [];
+      clearedListeners = [];
     }
   };
 })();
