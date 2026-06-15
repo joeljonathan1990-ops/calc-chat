@@ -153,12 +153,14 @@
       ChatUI.clearMessages();
       history.forEach(m => ChatUI.appendMessage(m, m.sender === settings.name));
     }
+    startPolling();
     ChatUI.scrollToBottom();
     ChatUI.focusInput();
   }
 
   function closeChat() {
     clearIdle();
+    stopPolling();
     ChatUI.hidePanels();
     ChatUI.blurInput();
     $chatOverlay.classList.add('hidden');
@@ -309,6 +311,31 @@
     });
   }
 
+  // ===== Recepción robusta de mensajes =====
+  // Red de seguridad por si se perdió un broadcast en vivo: recarga el historial
+  // y agrega SOLO lo nuevo (appendMessage descarta lo ya visto por id).
+  async function refreshHistory() {
+    if (!settings || !window.ChatAPI.configured) return;
+    if ($chatOverlay.classList.contains('hidden')) return;
+    const history = await ChatAPI.loadHistory();
+    history.forEach(m => ChatUI.appendMessage(m, m.sender === settings.name));
+  }
+
+  // Sondeo suave mientras el chat está abierto y visible (respaldo del tiempo real).
+  let pollTimer = null;
+  function startPolling() {
+    stopPolling();
+    pollTimer = setInterval(() => {
+      if (document.visibilityState === 'visible' &&
+          !$chatOverlay.classList.contains('hidden')) {
+        refreshHistory();
+      }
+    }, 7000);
+  }
+  function stopPolling() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  }
+
   // ===== Escudo de privacidad =====
   // Android saca una "foto" de la pantalla al pasar la app a segundo plano
   // (vista de apps recientes). Con modo oculto activo, cerramos el chat al
@@ -326,11 +353,13 @@
   window.addEventListener('blur', lockForBackground);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') lockForBackground();
+    else refreshHistory();
   });
 
   // Al volver del selector de archivos/cámara, rearmar el escudo
   window.addEventListener('focus', () => {
     setTimeout(() => { ChatUI.pickingFile = false; }, 800);
+    refreshHistory();
   });
 
   // ===== Notificaciones push (app cerrada / segundo plano) =====

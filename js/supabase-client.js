@@ -95,7 +95,7 @@
 
     onMessage(fn) { listeners.push(fn); },
 
-    async loadHistory(limit = 200) {
+    async loadHistory(limit = 500) {
       if (!currentRoom) return [];
       const { data, error } = await client.rpc('load_chat', {
         p_room: currentRoom,
